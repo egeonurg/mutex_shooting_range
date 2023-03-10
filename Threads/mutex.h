@@ -10,20 +10,18 @@
 #include <pthread.h>
 #include "mutex.h"
 
-#define PTHREAD_MUTEX 0
+#define PTHREAD_MUTEX  0
+#define PETERSON_MUTEX 1
 
-void lock_init();
+#define MUTEX_ALGORITHM   PETERSON_MUTEX
 
-void unlock_mutex(int other);
-
-extern char flag[2];
-extern char turn ;
-
-#if PTHREAD_MUTEX
-extern pthread_mutex_t lock_mutex;
+#if MUTEX_ALGORITHM == PTHREAD_MUTEX
+extern pthread_mutex_t lock;
 
 #else
-void lock_mutex(int other);
+void lock_init();
+void lock(int self);
+void unlock(int self);
 #endif
 
 #endif /* MUTEX_H_ */

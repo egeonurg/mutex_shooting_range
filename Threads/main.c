@@ -1,46 +1,106 @@
-/*
- * main.c
- *
- *  Created on: Mar 9, 2023
- *      Author: egeonurg
- */
+// Filename: peterson_spinlock.c
+// Use below command to compile:
+// gcc -pthread peterson_spinlock.c -o peterson_spinlock
 
-#include <unistd.h>
-#include <pthread.h>
 #include <stdio.h>
-#include "mutex.h"
-#include "system.h"
+#include <pthread.h>
 #include "thread_fct.h"
+#include <assert.h>
 
-#if PTHREAD_MUTEX
-pthread_mutex_t lock;
-#else
+mutex_lock_t thread_mutex_status[2] = {0};
 
-#endif
-mutex_lock_t thread_mutex_status[NUMBER_OF_PROCESSORS] = {0};
-
-int main()
+void* x1_write()
 {
-#if PTHREAD_MUTEX
-	  if (pthread_mutex_init(&lock, NULL) != 0) {
-	        printf("\n mutex init has failed\n");
-	        return 1;
-	    }
-#else
-	  lock_init();
-#endif
-
-	pthread_t threads[NUMBER_OF_PROCESSORS][NUMBER_OF_OPERATIONS]= {0};
-
-	pthread_create(&threads[PROCESSOR_X1][READ_OPERATION] , NULL, (void*)&x1_read_function ,	NULL);
-	pthread_create(&threads[PROCESSOR_X1][WRITE_OPERATION], NULL, (void*)&x1_write_function,	NULL);
-	pthread_create(&threads[PROCESSOR_X2][READ_OPERATION] , NULL, (void*)&x2_read_function ,	NULL);
-	pthread_create(&threads[PROCESSOR_X2][WRITE_OPERATION], NULL, (void*)&x2_write_function,	NULL);
-
-	pthread_join(threads[PROCESSOR_X1][READ_OPERATION],NULL);
-	pthread_join(threads[PROCESSOR_X1][WRITE_OPERATION],NULL);
-	pthread_join(threads[PROCESSOR_X2][READ_OPERATION],NULL);
-	pthread_join(threads[PROCESSOR_X2][WRITE_OPERATION],NULL);
-
+	int self = PROCESSOR_X1;
+	while(1)
+	{
+	    lock(self);
+		thread_mutex_status[self] = MUTEX_LOCKED;
+	    // Critical section (Only one thread
+		_SYS_CHECK_MUTEX_OWNERS();
+	    // can enter here at a time)
+		thread_mutex_status[self] = MUTEX_UNLOCKED;
+	    unlock(self);
+	    sleep(1);
+	}
 }
 
+
+void* x1_read()
+{
+	int self = PROCESSOR_X1 ;
+	while(1)
+	{
+	   // printf("Thread Entered: %d\n", self);
+
+	    lock(self);
+		thread_mutex_status[self] = MUTEX_LOCKED;
+	    // Critical section (Only one thread
+		_SYS_CHECK_MUTEX_OWNERS();
+	    // can enter here at a time)
+		thread_mutex_status[self] = MUTEX_UNLOCKED;
+	    unlock(self);
+	    sleep(1);
+
+	}
+}
+
+void* x2_write()
+{
+	int self = PROCESSOR_X2;
+	while(1)
+	{
+	    lock(self);
+		thread_mutex_status[self] = MUTEX_LOCKED;
+	    // Critical section (Only one thread
+		_SYS_CHECK_MUTEX_OWNERS();
+	    // can enter here at a time)
+		thread_mutex_status[self] = MUTEX_UNLOCKED;
+	    unlock(self);
+	    sleep(1);
+
+	}
+}
+
+
+void* x2_read()
+{
+	int self = PROCESSOR_X2 ;
+	while(1)
+	{
+	   // printf("Thread Entered: %d\n", self);
+
+	    lock(self);
+		thread_mutex_status[self] = MUTEX_LOCKED;
+	    // Critical section (Only one thread
+		_SYS_CHECK_MUTEX_OWNERS();
+	    // can enter here at a time)
+		thread_mutex_status[self] = MUTEX_UNLOCKED;
+	    unlock(self);
+	    sleep(1);
+
+	}
+}
+
+
+// Driver code
+int main()
+{
+    // Initialized the lock then fork 2 threads
+    pthread_t p1, p2,p3,p4;
+    lock_init();
+
+    // Create two threads (both run func)
+    pthread_create(&p1, NULL, x1_write, (void*)0);
+    pthread_create(&p2, NULL, x1_read, (void*)0);
+    pthread_create(&p3, NULL, x2_write, (void*)0);
+    pthread_create(&p4, NULL, x2_read, (void*)0);
+
+    // Wait for the threads to end.
+    pthread_join(p1, NULL);
+    pthread_join(p2, NULL);
+    pthread_join(p3, NULL);
+    pthread_join(p4, NULL);
+
+    return 0;
+}

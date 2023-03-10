@@ -7,37 +7,50 @@
 
 #include "system.h"
 #include "mutex.h"
+#include <assert.h>
+#include <stdio.h>
 
+#if MUTEX_ALGORITHM == PTHREAD_MUTEX
+#else
 
-char flag[2] = {0};
-char turn = 0;
-
+int flag[2] = {0};
+int turn = 0 ;
 
 void lock_init()
 {
-    // They are reset by resetting their preference to acquire locks. This is done by giving one of them a turn.
-    flag[0] = flag[1] = 0;
+    // Initialize lock by resetting the desire of
+    // both the threads to acquire the locks.
+    // And, giving turn to one of them.
+    flag[0] = flag[1] = MUTEX_UNLOCKED;
     turn = 0;
 }
 
-// function for locking Petersons Algorithm
-
-void lock_mutex(int other)
+// Executed before entering critical section
+void lock(int self)
 {
-    flag[other] = 1;  // Marking this thread wants to enter the critical section
-    turn = 1 - other; // Assuming that the order thread has priority
-    while (flag[1 - other] == 1 && turn == 1 - other);
-}
-#if PTHREAD_MUTEX
+    // Set flag[self] = 1 saying you want to acquire lock
+    flag[self] = MUTEX_LOCKED;
 
-#else
+    // But, first give the other thread the chance to
+    // acquire lock
+    turn = 1-self;
+
+    // Wait until the other thread looses the desire
+    // to acquire lock or it is your turn to get the lock.
+    while (flag[1-self]== MUTEX_LOCKED && turn == 1-self)
+    {
+    	printf("thread %d is waiting !\n", self);
+    }
+}
+
+// Executed after leaving critical section
+void unlock(int self)
+{
+    // You do not desire to acquire lock in future.
+    // This will allow the other thread to acquire
+    // the lock.
+	printf("thread %d has ran !\n", self);
+    flag[self] = MUTEX_UNLOCKED;
+}
+
 #endif
-
-// Method for unlocking Petersonbs algorithm
-
-void unlock_mutex(int other)
-{
-    flag[other] = 0; // Marking that this thread is no longer wants to enter the critical section
-}
-
-
