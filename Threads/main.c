@@ -1,106 +1,48 @@
-// Filename: peterson_spinlock.c
-// Use below command to compile:
-// gcc -pthread peterson_spinlock.c -o peterson_spinlock
+/*
+ * main.c
+ *
+ *  Created on: Mar 7, 2022
+ *      Author: ege
+ */
 
-#include <stdio.h>
+#include <sched.h>
+#include <unistd.h>
 #include <pthread.h>
-#include "thread_fct.h"
-#include <assert.h>
+#include "mutex.h"
+#include "sys_threads.h"
 
-mutex_lock_t thread_mutex_status[2] = {0};
-
-void* x1_write()
-{
-	int self = PROCESSOR_X1;
-	while(1)
-	{
-	    lock(self);
-		thread_mutex_status[self] = MUTEX_LOCKED;
-	    // Critical section (Only one thread
-		_SYS_CHECK_MUTEX_OWNERS();
-	    // can enter here at a time)
-		thread_mutex_status[self] = MUTEX_UNLOCKED;
-	    unlock(self);
-	    sleep(1);
-	}
-}
-
-
-void* x1_read()
-{
-	int self = PROCESSOR_X1 ;
-	while(1)
-	{
-	   // printf("Thread Entered: %d\n", self);
-
-	    lock(self);
-		thread_mutex_status[self] = MUTEX_LOCKED;
-	    // Critical section (Only one thread
-		_SYS_CHECK_MUTEX_OWNERS();
-	    // can enter here at a time)
-		thread_mutex_status[self] = MUTEX_UNLOCKED;
-	    unlock(self);
-	    sleep(1);
-
-	}
-}
-
-void* x2_write()
-{
-	int self = PROCESSOR_X2;
-	while(1)
-	{
-	    lock(self);
-		thread_mutex_status[self] = MUTEX_LOCKED;
-	    // Critical section (Only one thread
-		_SYS_CHECK_MUTEX_OWNERS();
-	    // can enter here at a time)
-		thread_mutex_status[self] = MUTEX_UNLOCKED;
-	    unlock(self);
-	    sleep(1);
-
-	}
-}
-
-
-void* x2_read()
-{
-	int self = PROCESSOR_X2 ;
-	while(1)
-	{
-	   // printf("Thread Entered: %d\n", self);
-
-	    lock(self);
-		thread_mutex_status[self] = MUTEX_LOCKED;
-	    // Critical section (Only one thread
-		_SYS_CHECK_MUTEX_OWNERS();
-	    // can enter here at a time)
-		thread_mutex_status[self] = MUTEX_UNLOCKED;
-	    unlock(self);
-	    sleep(1);
-
-	}
-}
-
-
-// Driver code
 int main()
 {
-    // Initialized the lock then fork 2 threads
-    pthread_t p1, p2,p3,p4;
-    lock_init();
 
-    // Create two threads (both run func)
-    pthread_create(&p1, NULL, x1_write, (void*)0);
-    pthread_create(&p2, NULL, x1_read, (void*)0);
-    pthread_create(&p3, NULL, x2_write, (void*)0);
-    pthread_create(&p4, NULL, x2_read, (void*)0);
+	peterson_mutex_init();
 
-    // Wait for the threads to end.
-    pthread_join(p1, NULL);
-    pthread_join(p2, NULL);
-    pthread_join(p3, NULL);
-    pthread_join(p4, NULL);
+	/* Semaphores for the slave tasks, which synchronizes it to the master */
 
-    return 0;
+	sem_init(&sem_thread0, 0, 0);
+	sem_init(&sem_thread1, 0, 0);
+	sem_init(&sem_thread2, 0, 0);
+	sem_init(&sem_thread3, 0, 0);
+
+	/* Semaphores for the master task, which synchronizes master task to the end of slave task events */
+	sem_init(&sem_master0, 0, 1);
+	sem_init(&sem_master1, 0, 1);
+	sem_init(&sem_master2, 0, 1);
+	sem_init(&sem_master3, 0, 1);
+
+    pthread_create( &slave_thread0, NULL, (void*)&slave_thread0_func, NULL);
+    pthread_create( &slave_thread1, NULL, (void*)&slave_thread1_func, NULL);
+    pthread_create( &slave_thread2, NULL, (void*)&slave_thread2_func, NULL);
+    pthread_create( &slave_thread3, NULL, (void*)&slave_thread3_func, NULL);
+    pthread_create( &master_thread, NULL, (void*)&master_thread_func, NULL);
+
+	pthread_join(master_thread,NULL);
+	pthread_join(slave_thread0,NULL);
+	pthread_join(slave_thread1,NULL);
+	pthread_join(slave_thread2,NULL);
+	pthread_join(slave_thread3,NULL);
+
+	while(1)
+		{
+
+		}
 }
